@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Invoice Chaser</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;800&display=swap">
+<style>
+:root{--bg:#F3F4F8;--surface:#fff;--ink:#1A1B2E;--muted:#62657F;--line:#DADCE8;--accent:#3B3FD8;--onaccent:#fff;--late:#C2371D;--paid:#1E7F4F;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#101120;--surface:#1A1C32;--ink:#EAEAF6;--muted:#9A9DBA;--line:#2D3050;--accent:#8C90FF;--onaccent:#10112A;--late:#FF8A73;--paid:#5FD69A;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 Sora,system-ui,sans-serif;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+main{max-width:600px;margin:0 auto;padding:20px 16px 56px}
+h1{font-size:1.6rem;font-weight:800;margin:6px 0 16px;letter-spacing:-.02em}
+h2{font-size:1rem;margin:26px 0 10px}
+.hero{background:var(--accent);color:var(--onaccent);border-radius:18px;padding:18px}
+.hero small{opacity:.85}
+.big{font-size:2.4rem;font-weight:800;letter-spacing:-.03em;line-height:1.1}
+.bar{height:8px;border-radius:99px;background:rgba(255,255,255,.3);margin:12px 0 8px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--onaccent);opacity:.9;width:0}
+.row{display:flex;justify-content:space-between;gap:8px;font-size:.85rem}
+.panel,details.box{background:var(--surface);border:1px solid var(--line);border-radius:14px;margin-top:14px}
+.panel{padding:14px}
+details.box>summary{cursor:pointer;font-weight:600;padding:14px}
+.fgrid{display:grid;gap:10px;grid-template-columns:1fr 1fr;padding:0 14px 14px}
+.panel .fgrid{padding:0}
+.full{grid-column:1/-1}
+label{display:grid;gap:4px;font-size:.8rem;color:var(--muted)}
+label.chk{display:flex;gap:8px;align-items:center;font-size:.9rem;color:var(--ink)}
+label.chk input{width:auto}
+input,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;width:100%;min-width:0}
+textarea{resize:vertical;min-height:90px}
+input:focus-visible,textarea:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid var(--line);background:transparent;color:var(--ink);padding:7px 11px;font-size:.88rem}
+button:disabled{opacity:.6;cursor:default}
+.primary{background:var(--accent);color:var(--onaccent);border-color:var(--accent);font-weight:600;padding:12px;font-size:1rem}
+.link{border:0;padding:0;color:var(--accent);text-decoration:underline}
+.card{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--accent);border-radius:14px;padding:12px 14px;margin-bottom:10px}
+.card.late{border-left-color:var(--late)}
+.card.paid{border-left-color:var(--paid);opacity:.8}
+.top{display:flex;justify-content:space-between;gap:10px}
+.cl{font-weight:600;overflow-wrap:anywhere}
+.amt{font-weight:800;white-space:nowrap}
+.meta{color:var(--muted);font-size:.85rem;margin-top:2px}
+.late .st{color:var(--late);font-weight:600}
+.paid .st{color:var(--paid);font-weight:600}
+.acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.msg{margin-top:10px;display:grid;gap:8px}
+.empty{color:var(--muted);border:1px dashed var(--line);border-radius:14px;padding:16px;text-align:center}
+.plan{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.err{color:var(--late);font-size:.9rem;min-height:1.2em}
+.tabs{display:flex;gap:14px;margin-bottom:12px}
+.tabs button{border:0;padding:4px 0;border-bottom:2px solid transparent;border-radius:0;font-weight:600;color:var(--muted)}
+.tabs button.on{color:var(--ink);border-color:var(--accent)}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:99px;opacity:0;pointer-events:none;transition:opacity .2s;max-width:90%;text-align:center}
+#toast.on{opacity:1}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+<h1>Invoice Chaser</h1>
+
+<section id="auth" class="panel" hidden>
+  <div class="tabs"><button id="tLogin" class="on" type="button">Log in</button><button id="tSignup" type="button">Create account</button></div>
+  <form id="authForm" class="fgrid">
+    <label class="full" id="nameWrap" hidden>Your name<input id="aName" maxlength="60" autocomplete="name"></label>
+    <label class="full">Email<input id="aEmail" type="email" required autocomplete="email"></label>
+    <label class="full">Password<input id="aPw" type="password" required minlength="8" autocomplete="current-password"></label>
+    <div class="err full" id="aErr"></div>
+    <button class="primary full" type="submit" id="aBtn">Log in</button>
+  </form>
+</section>
+
+<div id="app" hidden>
+  <section class="hero">
+    <small>Waiting to be paid</small>
+    <div class="big" id="owed">$0.00</div>
+    <div class="bar"><i id="bar"></i></div>
+    <div class="row"><span id="lateTxt">Nothing overdue</span><span id="paidTxt">$0.00 collected</span></div>
+  </section>
+
+  <section class="panel plan">
+    <span id="planTxt"></span>
+    <span><button id="planBtn" class="primary" type="button" style="padding:8px 14px;font-size:.9rem"></button></span>
+  </section>
+
+  <details class="box" open><summary>New invoice</summary>
+    <form id="f" class="fgrid">
+      <label class="full">Client name<input id="client" required maxlength="60" placeholder="Maya at Northwind"></label>
+      <label class="full">Client email<input id="email" type="email" placeholder="maya@northwind.com"></label>
+      <label class="full">What was it for?<input id="desc" required maxlength="80" placeholder="Logo redesign"></label>
+      <label>Amount ($)<input id="amount" type="number" min="0.01" step="0.01" required></label>
+      <label>Due date<input id="due" type="date" required></label>
+      <div class="err full" id="fErr"></div>
+      <button class="primary full" type="submit">Add invoice</button>
+    </form>
+  </details>
+
+  <details class="box"><summary>Settings</summary>
+    <form id="sForm" class="fgrid">
+      <label class="full">Your name (shown in emails)<input id="me" maxlength="60"></label>
+      <label class="full">How to pay you<textarea id="pay" maxlength="300" placeholder="Bank details, PayPal link, etc."></textarea></label>
+      <label class="chk full"><input type="checkbox" id="auto"> Send follow-ups automatically (paid plan)</label>
+      <button class="primary full" type="submit">Save settings</button>
+      <button class="full" type="button" id="logout">Log out</button>
+    </form>
+  </details>
+
+  <h2 id="openH">Unpaid</h2>
+  <div id="open"></div>
+  <details><summary id="paidH" style="cursor:pointer;font-weight:600;margin-top:26px">Paid</summary><div id="paid" style="margin-top:10px"></div></details>
+</div>
+</main>
+<div id="toast" role="status"></div>
+<script>
+var me=null,items=[],mode="login";
+var $=function(id){return document.getElementById(id)};
+var money=function(c){return (c/100).toLocaleString("en-US",{style:"currency",currency:"USD"})};
+function iso(d){var m=d.getMonth()+1,x=d.getDate();return d.getFullYear()+"-"+(m<10?"0":"")+m+"-"+(x<10?"0":"")+x}
+function today(){return iso(new Date())}
+function dd(a,b){return Math.round((new Date(b+"T00:00:00")-new Date(a+"T00:00:00"))/864e5)}
+function fmt(s){return new Date(s+"T00:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric"})}
+function h(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e}
+function btn(t,fn){var b=h("button",null,t);b.type="button";b.onclick=function(){fn(b)};return b}
+function toast(m){var t=$("toast");t.textContent=m;t.classList.add("on");clearTimeout(toast.k);toast.k=setTimeout(function(){t.classList.remove("on")},2600)}
+async function api(p,method,body){
+  var r=await fetch(p,{method:method||"GET",headers:{"Content-Type":"application/json"},body:body?JSON.stringify(body):undefined});
+  var j=await r.json().catch(function(){return{}});
+  if(!r.ok){var e=new Error(j.error||"Something went wrong");e.upgrade=j.upgrade;e.status=r.status;throw e}
+  return j;
+}
+function upgrade(){api("/api/billing/checkout","POST").then(function(j){location.href=j.url}).catch(function(e){toast(e.message)})}
+
+function setMode(m){mode=m;$("tLogin").classList.toggle("on",m==="login");$("tSignup").classList.toggle("on",m==="signup");
+  $("nameWrap").hidden=m!=="signup";$("aBtn").textContent=m==="login"?"Log in":"Create account";$("aErr").textContent="";
+  $("aPw").autocomplete=m==="login"?"current-password":"new-password"}
+$("tLogin").onclick=function(){setMode("login")};$("tSignup").onclick=function(){setMode("signup")};
+$("authForm").onsubmit=async function(e){
+  e.preventDefault();$("aErr").textContent="";
+  try{me=await api(mode==="login"?"/api/login":"/api/signup","POST",{email:$("aEmail").value,password:$("aPw").value,name:$("aName").value});await enter()}
+  catch(err){$("aErr").textContent=err.message}
+};
+$("logout").onclick=async function(){await api("/api/logout","POST");me=null;items=[];show()};
+
+function show(){$("auth").hidden=!!me;$("app").hidden=!me}
+async function enter(){show();$("me").value=me.name||"";$("pay").value=me.pay_info||"";$("auto").checked=me.auto_send;await refresh();
+  if(/upgraded=1/.test(location.search)){history.replaceState(null,"","/");toast("Welcome to the paid plan")}}
+async function refresh(){items=await api("/api/invoices");render()}
+
+function late(it){return dd(it.due,today())}
+function card(it){
+  var paid=!!it.paid_on,l=late(it),isLate=!paid&&l>0;
+  var c=h("div","card"+(isLate?" late":"")+(paid?" paid":""));
+  var t=h("div","top"),L=h("div");L.appendChild(h("div","cl",it.client));L.appendChild(h("div","meta",it.num+" · "+it.descr));
+  t.appendChild(L);t.appendChild(h("div","amt",money(it.amount_cents)));c.appendChild(t);
+  var st=paid?"Paid "+fmt(it.paid_on):isLate?l+(l===1?" day":" days")+" overdue":l===0?"Due today":"Due "+fmt(it.due)+" (in "+(-l)+(l===-1?" day":" days")+")";
+  c.appendChild(h("div","meta st",st));
+  var a=h("div","acts"),box=h("div","msg");box.hidden=true;
+  if(!paid){
+    a.appendChild(btn("Chase",async function(){
+      if(!box.hidden){box.hidden=true;return}
+      try{var m=await api("/api/invoices/"+it.id+"/message");box.textContent="";
+        var ta=h("textarea");ta.value=m.body;box.appendChild(ta);var r=h("div","acts");
+        r.appendChild(btn("Copy",function(){try{navigator.clipboard.writeText(ta.value).then(function(){toast("Copied")})}catch(e){toast("Select the text to copy")}}));
+        r.appendChild(btn("Send email",async function(b){
+          if(me.plan!=="pro"){toast("Sending is on the paid plan");return}
+          b.disabled=true;
+          try{await api("/api/invoices/"+it.id+"/send","POST",{body:ta.value});toast("Sent to "+it.email)}catch(e){toast(e.message)}b.disabled=false}));
+        box.appendChild(r);box.hidden=false}catch(e){toast(e.message)}
+    }));
+    a.appendChild(btn("Mark paid",async function(){await api("/api/invoices/"+it.id+"/paid","POST");toast("Nice. "+money(it.amount_cents)+" collected");refresh()}));
+  }else a.appendChild(btn("Undo",async function(){await api("/api/invoices/"+it.id+"/paid","POST",{undo:true});refresh()}));
+  a.appendChild(btn("Delete",async function(){if(confirm("Delete invoice "+it.num+"?")){await api("/api/invoices/"+it.id,"DELETE");refresh()}}));
+  c.appendChild(a);c.appendChild(box);return c;
+}
+function render(){
+  var o=items.filter(function(x){return!x.paid_on}),p=items.filter(function(x){return x.paid_on}).reverse();
+  var owed=0,over=0,coll=0,cnt=0;
+  o.forEach(function(x){owed+=x.amount_cents;if(late(x)>0){over+=x.amount_cents;cnt++}});
+  p.forEach(function(x){coll+=x.amount_cents});
+  $("owed").textContent=money(owed);$("bar").style.width=(owed?Math.round(over/owed*100):0)+"%";
+  $("lateTxt").textContent=over?money(over)+" overdue ("+cnt+(cnt===1?" invoice)":" invoices)"):"Nothing overdue";
+  $("paidTxt").textContent=money(coll)+" collected";
+  $("openH").textContent="Unpaid ("+o.length+")";$("paidH").textContent="Paid ("+p.length+")";
+  var pro=me.plan==="pro";
+  $("planTxt").textContent=pro?"Paid plan: unlimited invoices, automatic follow-ups":"Free plan: "+items.length+" of "+me.free_limit+" invoices used";
+  $("planBtn").textContent=pro?"Manage billing":"Upgrade";
+  $("planBtn").onclick=pro?function(){api("/api/billing/portal","POST").then(function(j){location.href=j.url}).catch(function(e){toast(e.message)})}:upgrade;
+  var oe=$("open"),pe=$("paid");oe.textContent="";pe.textContent="";
+  if(!o.length)oe.appendChild(h("div","empty","No unpaid invoices. Add one above and Chase writes the follow-up for you."));
+  o.forEach(function(x){oe.appendChild(card(x))});p.forEach(function(x){pe.appendChild(card(x))});
+}
+$("due").value=iso(new Date(Date.now()+14*864e5));
+$("f").onsubmit=async function(e){
+  e.preventDefault();$("fErr").textContent="";
+  try{await api("/api/invoices","POST",{client:$("client").value,email:$("email").value,descr:$("desc").value,amount:$("amount").value,due:$("due").value});
+    ["client","email","desc","amount"].forEach(function(k){$(k).value=""});toast("Invoice added");await refresh()}
+  catch(err){$("fErr").textContent=err.message;if(err.upgrade){var b=btn("Upgrade now",upgrade);$("fErr").appendChild(document.createTextNode(" "));$("fErr").appendChild(b)}}
+};
+$("sForm").onsubmit=async function(e){
+  e.preventDefault();
+  try{me=await api("/api/settings","POST",{name:$("me").value,pay_info:$("pay").value,auto_send:$("auto").checked});toast("Settings saved")}catch(err){toast(err.message)}
+};
+(async function(){try{me=await api("/api/me");await enter()}catch(e){me=null;show()}})();
+</script>
+</body>
+</html>
